@@ -9,11 +9,12 @@ import pandas as pd
 import numpy as np
 import itertools
 from collections import Counter
-import os
 import MeCab
 import re
-#pd.options.display.max_rows = 1000
 import argparse
+import matplotlib.pyplot as plt
+import japanize_matplotlib
+import networkx as nx
 
 # input columns
 TIME_COLUMN = 'time'
@@ -90,14 +91,12 @@ def get_word_list(sr:pd.Series) -> pd.Series:
     debug用
         sr = df[TEXT_COLUMN]
     '''
-    cmp = re.compile('^.*形容詞|名詞.*$')
     def _judge(s:str) -> bool:
         '''
         正規表現で指定した品詞にマッチすればTrue
         '''
         return cmp.match(s) is not None
 
-    me = MeCab.Tagger ("-Ochasen")
     def _apply_func_get_word_list(s):
         '''
         # debug用
@@ -126,6 +125,8 @@ def get_word_list(sr:pd.Series) -> pd.Series:
             return None
         return ls
 
+    cmp = re.compile('^.*形容詞|名詞.*$')
+    me = MeCab.Tagger ("-Ochasen")
     return sr.apply(_apply_func_get_word_list)
 
 
@@ -211,28 +212,14 @@ def plot_network(sr: pd.Series, ng_list: list, th_lowest_cnt: int, n_word_max: i
         noun_1.append(n[0])
         noun_2.append(n[1])
         frequency.append(f)
-    df = pd.DataFrame({'前出名詞': noun_1, '後出名詞': noun_2, '出現頻度': frequency})
+    df = pd.DataFrame({'word1': noun_1, 'word2': noun_2, '出現頻度': frequency})
     weighted_edges = np.array(df)
-    # 同じ単語のペアは除く
-    # 個人名を含むものは除く 〇〇さん
-    # ①など意味不明なものは除く
-    # 88は除く
-
-    import matplotlib.pyplot as plt
-    import japanize_matplotlib
-    import networkx as nx
-    #%matplotlib inline 
 
     # グラフオブジェクトの生成
     G = nx.Graph(facecolor='red')
 
     # 重み付きデータの読み込み
     G.add_weighted_edges_from(weighted_edges)
-
-    G.nodes
-    G.edges
-    G.degree
-    list(nx.all_neighbors(G, list(G.nodes)[0]))
 
     # ネットワーク図の描画
     for i in range(10):  # 配置いろいろ10枚出す
