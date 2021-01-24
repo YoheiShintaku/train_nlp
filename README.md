@@ -1,6 +1,21 @@
 # train_nlp
 自然言語処理の練習
 
+
+# directories
+```
+├── README.md
+└── zoom_chat
+    ├── data
+    │   ├── input
+    │   │   └── meeting_saved_chat.txt
+    │   ├── output
+    │   └── preprocess
+    └── src
+        ├── batch.sh
+        └── main_co-occurrence_network.py
+```
+
 # zoom_chat
 ## 概要
 zoomチャットのテキストを読み込んで解析する
