@@ -3,7 +3,7 @@
 前提
     カレントディレクトリは本スクリプトのある場所
 実行例
-    python3 main_co-occurrence_network.py --path ../data/input/meeting_saved_chat.txt 80
+    python3 main_co-occurrence_network.py --path ../data/input/meeting_saved_chat.txt --n_word_max 50
 '''
 import pandas as pd
 import numpy as np
