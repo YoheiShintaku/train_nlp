@@ -3,7 +3,11 @@
 前提
     カレントディレクトリは本スクリプトのある場所
 実行例
-    python3 main_co-occurrence_network.py --path ../data/input/meeting_saved_chat.txt --n_word_max 50
+    python3 main_co-occurrence_network.py \
+        --path "../data/input/meeting_saved_chat.txt" \
+        --ng_list_path "../data/input/ng_list.txt" \
+        --n_word_max 70 \
+        --th_lowest_cnt 2
 '''
 import pandas as pd
 import numpy as np
@@ -24,40 +28,62 @@ NAME_COLUMN = 'name'
 TEXT_COLUMN = 'text'
 WORD_LIST_COLUMN = 'word_list'
 
-def main(path: str, n_word_max: int) -> None:
+def main(
+    chat_path: str, ng_list_path:str, 
+    n_word_max: int, th_lowest_cnt: int) -> None:
     '''
+    paramters
+    -------------
+    n_word_max: int
+        表示単語数上限
+
+    th_lowest_cnt: int
+        最低出現頻度
+
     debug用
         path = '../data/input/meeting_saved_chat.txt'
-        n_word_max = 80
+        ng_list_path = '../data/input/ng_list.txt'
+        n_word_max = 70
+        th_lowest_cnt = 2
     '''
 
-    df_chat = load(path)
-
-    df_chat = preprocess(df_chat)
+    df_chat = load_chat(chat_path)
+    ng_list = load_ng_list(ng_list_path)
 
     # 発言内容の単語リストを取得し、その列を追加
+    df_chat = preprocess_chat(df_chat)
     df_chat[WORD_LIST_COLUMN] = get_word_list(df_chat[TEXT_COLUMN])
 
-    # 名前から生じる単語リストを取得し、NGワードとする
-    ng_list = get_word_in_name(get_word_list(df_chat[NAME_COLUMN]))
+    # 名前から生じる単語リストを取得し、NGワードに追加
+    name_word_list  = get_word_in_name(
+            get_word_list(df_chat[NAME_COLUMN]))
+    ng_list = ng_list + name_word_list
+    del name_word_list
 
-    # 
+    # plot
     plot_network(df_chat[WORD_LIST_COLUMN], ng_list, 
-        th_lowest_cnt=2, n_word_max=n_word_max,)
+        th_lowest_cnt, n_word_max,)
 
     return None
 
 
-def load(path: str) -> pd.DataFrame:
+def load_chat(path: str) -> pd.DataFrame:
     '''
     '''
     names = [TIME_COLUMN, TEXT_ORG_COLUMN]
     df = pd.read_csv(path, sep='\t', header=None, names=names)
     print(path, df.shape)
     return df
+    
+
+def load_ng_list(path: str) -> list:
+    with open(path, 'r') as f:
+        ls = f.readlines()
+        ls = [s.replace('\n', '') for s in ls]
+        return ls
 
 
-def preprocess(df: pd.DataFrame) -> pd.DataFrame:
+def preprocess_chat(df: pd.DataFrame) -> pd.DataFrame:
     '''
     '''
     def _apply_func_get_name(x):
@@ -84,7 +110,7 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
         NAME_COLUMN: df[TEXT_ORG_COLUMN].apply(_apply_func_get_name).copy(),
         })  # warning messageがうざいのでassignを使う
     return df
-    
+
 
 def get_word_list(sr:pd.Series) -> pd.Series:
     '''
@@ -165,6 +191,9 @@ def plot_network(sr: pd.Series, ng_list: list, th_lowest_cnt: int, n_word_max: i
         sr = df_chat[WORD_LIST_COLUMN]
         th_lowest_cnt = 3
     '''
+    print('ng_list:')
+    print(ng_list)
+
     noun_list = []
     for word_list in sr:
         if word_list is not None:
@@ -224,7 +253,7 @@ def plot_network(sr: pd.Series, ng_list: list, th_lowest_cnt: int, n_word_max: i
     # ネットワーク図の描画
     for i in range(10):  # 配置いろいろ10枚出す
         plt.close(1)    
-        fig = plt.figure(1, figsize=(16, 9), 
+        fig = plt.figure(1, figsize=(12, 8), 
             tight_layout=True,)
         ax = fig.add_subplot(111)
         ax.axis('off')
@@ -248,7 +277,7 @@ def plot_network(sr: pd.Series, ng_list: list, th_lowest_cnt: int, n_word_max: i
         nx.draw_networkx(G,**params)
 
         path = f'../data/output/network_{i:02d}.png'
-        fig.savefig(path, bbox_inches='tight', pad_inches=0.1, dpi=70)
+        fig.savefig(path, bbox_inches='tight', pad_inches=0.1, dpi=85)
         print(f'output: {path}')
 
     return None
@@ -257,11 +286,15 @@ def plot_network(sr: pd.Series, ng_list: list, th_lowest_cnt: int, n_word_max: i
 if __name__=='__main__':
     # 引数の処理
     parser = argparse.ArgumentParser()
-    parser.add_argument('--path', help='zoom chatのテキストファイルのパス')
+    parser.add_argument('--chat_path', help='zoom chatのテキストファイルのパス')
+    parser.add_argument('--ng_list_path', help='')
     parser.add_argument('--n_word_max', help='表示単語数上限')
-
+    parser.add_argument('--th_lowest_cnt', help='最低出現頻度')
+    
     args = parser.parse_args()
-    path = args.path
+    chat_path = args.chat_path
+    ng_list_path = args.ng_list_path
     n_word_max = int(args.n_word_max)
+    th_lowest_cnt = int(args.th_lowest_cnt)
 
-    main(path, n_word_max)
+    main(chat_path, ng_list_path, n_word_max, th_lowest_cnt)

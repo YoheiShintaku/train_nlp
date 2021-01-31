@@ -25,16 +25,22 @@ zoomチャットのテキストを読み込んで解析する
 
 ## バッチ処理
 * 実行例
-  * sh batch.sh ../data/input/meeting_saved_chat.txt 50
-  * 第1引数: zoom chatテキストのパス
-  * 第2引数: 共起ネットワークの表示単語数上限
+```
+sh batch.sh "../data/input/meeting_saved_chat.txt" "../data/input/ng_list.txt" 70 2
+```
 * 実行内容
   * 共起ネットワーク図の作成スクリプトを実行
   * 〜スクリプトを実行
 
 ## 共起ネットワーク作成
 * 実行例
-  * python3 main_co-occurrence_network.py --path ../data/input/meeting_saved_chat.txt --n_word_max 50
+```
+    python3 main_co-occurrence_network.py \
+        --path "../data/input/meeting_saved_chat.txt" \
+        --ng_list_path "../data/input/ng_list.txt" \
+        --n_word_max 70 \
+        --th_lowest_cnt 2
+```
 * 実行内容
   * 共起ネットワーク作成、png出力。ランダム配置で10枚出す
 
