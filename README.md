@@ -26,7 +26,7 @@ zoomチャットのテキストを読み込んで解析する
 ## バッチ処理
 * 実行例
 ```
-sh batch.sh "../data/input/meeting_saved_chat.txt" "../data/input/ng_list.txt" 70 2
+sh batch.sh "../data/input/meeting_saved_chat.txt" "../data/input/ng_list.txt" 65 2
 ```
 * 実行内容
   * 共起ネットワーク図の作成スクリプトを実行

@@ -76,11 +76,17 @@ def load_chat(path: str) -> pd.DataFrame:
     return df
     
 
-def load_ng_list(path: str) -> list:
-    with open(path, 'r') as f:
-        ls = f.readlines()
-        ls = [s.replace('\n', '') for s in ls]
-        return ls
+def load_ng_list(path: str or None) -> list:
+    if path is None:
+        print('None ng list')
+        return []
+    else:
+        with open(path, 'r') as f:
+            ls = f.readlines()
+            ls = [s.replace('\n', '') for s in ls]
+            print('load ng list', path)
+            print(ls)
+            return ls
 
 
 def preprocess_chat(df: pd.DataFrame) -> pd.DataFrame:
@@ -286,11 +292,10 @@ def plot_network(sr: pd.Series, ng_list: list, th_lowest_cnt: int, n_word_max: i
 if __name__=='__main__':
     # 引数の処理
     parser = argparse.ArgumentParser()
-    parser.add_argument('--chat_path', help='zoom chatのテキストファイルのパス')
-    parser.add_argument('--ng_list_path', help='')
-    parser.add_argument('--n_word_max', help='表示単語数上限')
-    parser.add_argument('--th_lowest_cnt', help='最低出現頻度')
-    
+    parser.add_argument('--chat_path', help='必須')
+    parser.add_argument('--ng_list_path', help='', default=None)
+    parser.add_argument('--n_word_max', help='', default='65')
+    parser.add_argument('--th_lowest_cnt', help='', default='2')
     args = parser.parse_args()
     chat_path = args.chat_path
     ng_list_path = args.ng_list_path
