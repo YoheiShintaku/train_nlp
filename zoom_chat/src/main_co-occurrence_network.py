@@ -248,7 +248,7 @@ def plot_network(sr: pd.Series, ng_list: list, th_lowest_cnt: int, n_word_max: i
         nx.draw_networkx(G,**params)
 
         path = f'../data/output/network_{i:02d}.png'
-        fig.savefig(path, bbox_inches='tight', pad_inches=0.1, dpi=100)
+        fig.savefig(path, bbox_inches='tight', pad_inches=0.1, dpi=70)
         print(f'output: {path}')
 
     return None
