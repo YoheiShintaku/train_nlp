@@ -80,13 +80,16 @@ def load_ng_list(path: str or None) -> list:
     if path is None:
         print('None ng list')
         return []
-    else:
+    try:
         with open(path, 'r') as f:
             ls = f.readlines()
             ls = [s.replace('\n', '') for s in ls]
             print('load ng list', path)
             print(ls)
             return ls
+    except:
+        print('warning! ng_listの読み込み失敗', path)
+        return []
 
 
 def preprocess_chat(df: pd.DataFrame) -> pd.DataFrame:
