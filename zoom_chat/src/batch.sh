@@ -3,6 +3,9 @@
 zoom_chat_path=$1
 n_word_max=$2
 
+echo $zoom_chat_path
+echo $n_word_max
+
 # 共起ネットワーク図の作成スクリプトを実行
 echo 'main_co-occurrence_network.py'
-python3 main_co-occurrence_network.py --path $zoom_chat_path --n_word_max $n_word_max
+python3 main_co-occurrence_network.py --path "$zoom_chat_path" --n_word_max $n_word_max
