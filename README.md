@@ -37,3 +37,7 @@ zoomチャットのテキストを読み込んで解析する
   * python3 main_co-occurrence_network.py --path ../data/input/meeting_saved_chat.txt --n_word_max 50
 * 実行内容
   * 共起ネットワーク作成、png出力。ランダム配置で10枚出す
+
+## よくあるエラー
+### ファイルパスにスペースが含まれていてエラーが出る場合
+引数指定時にダブルクォーテーションでくくりましょう
