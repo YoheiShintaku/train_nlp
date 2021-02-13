@@ -1,14 +1,4 @@
 # coding: utf-8
-'''
-前提
-    カレントディレクトリは本スクリプトのある場所
-実行例
-    python3 main_co-occurrence_network.py \
-        --path "../data/input/meeting_saved_chat.txt" \
-        --ng_list_path "../data/input/ng_list.txt" \
-        --n_word_max 70 \
-        --th_lowest_cnt 2
-'''
 import pandas as pd
 import numpy as np
 import itertools
@@ -114,6 +104,16 @@ def preprocess_chat(df: pd.DataFrame) -> pd.DataFrame:
         return contents
 
     df = df.dropna(subset=[TEXT_ORG_COLUMN] ,axis=0)  # 発言内容の欠損行を除外
+
+    # : を含む行だけ残す
+    flags = df[TEXT_ORG_COLUMN].str.contains(':')
+    if flags.sum()==0:
+        print(df.head(3).T)  # データの例示
+        message = f'{TEXT_ORG_COLUMN}列に「:」を含むレコードがありません'
+        raise Exception(message)
+    df = df.loc[flags, :].copy()
+
+    # 発言者と内容の取り出し
     df = df.assign(**{
         TEXT_COLUMN: df[TEXT_ORG_COLUMN].apply(_apply_func_get_contents).copy(),
         NAME_COLUMN: df[TEXT_ORG_COLUMN].apply(_apply_func_get_name).copy(),
