@@ -31,10 +31,10 @@ def main(
         最低出現頻度
 
     debug用
-        path = '../data/input/meeting_saved_chat.txt'
+        chat_path = '../data/input/meeting_saved_chat.txt'
         ng_list_path = '../data/input/ng_list.txt'
-        n_word_max = 70
-        th_lowest_cnt = 2
+        n_word_max = 80
+        th_lowest_cnt = 1
     '''
 
     df_chat = load_chat(chat_path)
@@ -50,9 +50,16 @@ def main(
     ng_list = ng_list + name_word_list
     del name_word_list
 
+    # jaccard係数算出
+    df_edges = preprocess_plot(df_chat[WORD_LIST_COLUMN], ng_list, 
+        th_lowest_cnt)
+
     # plot
-    plot_network(df_chat[WORD_LIST_COLUMN], ng_list, 
-        th_lowest_cnt, n_word_max,)
+    for i in range(10):  # 配置いろいろ10枚出す
+        fig = plot(df_edges, n_word_max)
+        path = f'../data/output/network_{i:02d}.png'
+        fig.savefig(path, bbox_inches='tight', pad_inches=0.1, dpi=85)
+        print(f'output: {path}')
 
     return None
 
@@ -90,7 +97,10 @@ def preprocess_chat(df: pd.DataFrame) -> pd.DataFrame:
         debug用
             x = df_chat[TEXT_ORG_COLUMN].values[0]
         '''
-        name = str(x).split(':')[0].split(' ')[2]
+        try:
+            name = str(x).split(':')[0].split(' ')[2]
+        except:
+            name = ''
         return name
 
     def _apply_func_get_contents(x):
@@ -111,7 +121,8 @@ def preprocess_chat(df: pd.DataFrame) -> pd.DataFrame:
         print(df.head(3).T)  # データの例示
         message = f'{TEXT_ORG_COLUMN}列に「:」を含むレコードがありません'
         raise Exception(message)
-    df = df.loc[flags, :].copy()
+    else:
+        df = df.loc[flags, :].copy()
 
     # 発言者と内容の取り出し
     df = df.assign(**{
@@ -138,7 +149,6 @@ def get_word_list(sr:pd.Series) -> pd.Series:
         s = '皆様、よろしくお願いいたします！'
         '''
         parsed = me.parse(s)
-
         ls = (parsed
             .split('\nEOS\n')[0]  # 終端子を除く
             .split('\n')  # 改行で分割（改行区切りで単語が入っている為）
@@ -178,12 +188,10 @@ def get_word_in_name(sr: pd.Series) -> list:
     return result_ls
 
 
-def plot_network(sr: pd.Series, ng_list: list, th_lowest_cnt: int, n_word_max: int) -> None:
+def preprocess_plot(sr: pd.Series, ng_list: list, th_lowest_cnt: int) -> pd.DataFrame():
     '''    
     概要
         JACCARD係数の算出 両方を含む / どちらかを含む
-        共起ネットの可視化、出力
-        参考) https://qiita.com/y_itoh/items/7aa33ba0b1e30b3ea33d
 
     parameters
     ----------
@@ -234,8 +242,8 @@ def plot_network(sr: pd.Series, ng_list: list, th_lowest_cnt: int, n_word_max: i
     cnt_pairs = {k: v for k, v in cnt_pairs.items() if v>=th_lowest_cnt}
 
     # 出現頻度上位x組に限定
-    nmax = n_word_max
-    if len(cnt_pairs) < n_word_max:
+    nmax = 1000
+    if len(cnt_pairs) < nmax:
         nmax = len(cnt_pairs)
     tops = sorted(
     cnt_pairs.items(), 
@@ -250,46 +258,82 @@ def plot_network(sr: pd.Series, ng_list: list, th_lowest_cnt: int, n_word_max: i
         noun_1.append(n[0])
         noun_2.append(n[1])
         frequency.append(f)
-    df = pd.DataFrame({'word1': noun_1, 'word2': noun_2, '出現頻度': frequency})
+    df = pd.DataFrame({'word1': noun_1, 'word2': noun_2, 'weight': frequency})        
+    return df
+
+
+def plot(df, n_word_max):
+    '''
+    debug:
+        df = df_edges.copy()
+    '''
+
+    '''
+    if '居心地' in set(list(df['word1'])+list(df['word2'])):
+        print('居心地')
+        raise
+    '''
+
+    # つながりが少ない単語は除く
+    tmp = pd.concat([
+        df['word1'].value_counts(),
+        df['word2'].value_counts()], axis=1)
+    words = tmp[tmp.sum(axis=1)>10].index
+
+    flags = (
+        (df['word1'].isin(words))
+        |(df['word2'].isin(words))
+    )
+    df = df.loc[flags, :].copy()
+
+    # 上位x個抽出
+    df = df.sort_values(by='weight', ascending=False).head(n_word_max)
+
+    # weightをedge強度に使う。指定範囲に収まるよう加工
+    edge_vmax = 1
+    edge_vmin = 0.02
+    edge_vrange = edge_vmax - edge_vmin
+    df['weight'] = df['weight'] - df['weight'].min()  # 
+    df['weight'] = df['weight'] / df['weight'].max()  # 0-1
+    df['weight'] = df['weight'] * edge_vrange + edge_vmin
+
     weighted_edges = np.array(df)
 
+    plt.close(1)
+    fig = plt.figure(1, figsize=(12, 8), 
+        tight_layout=True,)
+    ax = fig.add_subplot(111)
+    ax.axis('off')
+    ax.set(facecolor = "orange")
+
     # グラフオブジェクトの生成
-    G = nx.Graph(facecolor='red')
-
-    # 重み付きデータの読み込み
-    G.add_weighted_edges_from(weighted_edges)
-
-    # ネットワーク図の描画
-    for i in range(10):  # 配置いろいろ10枚出す
-        plt.close(1)    
-        fig = plt.figure(1, figsize=(12, 8), 
-            tight_layout=True,)
-        ax = fig.add_subplot(111)
-        ax.axis('off')
-
-        params = {
-            #'node_list': 
-            'pos': nx.spring_layout(G, k=0.45),
-            'node_shape': "o",
-            'node_color': "#E0F7FA",
-            'node_size': 500,
-            'alpha': 0.9,
-            'linewidth': 0,  # symbol border
-            'edge_color': "gray", 
-            'font_family': "IPAexGothic",
-            'font_size': 12,
-            'width': 0.5,
-            'style': 'dotted',
-            'font_color': '#303F9F',
-            'ax': ax,
-        }
-        nx.draw_networkx(G,**params)
-
-        path = f'../data/output/network_{i:02d}.png'
-        fig.savefig(path, bbox_inches='tight', pad_inches=0.1, dpi=85)
-        print(f'output: {path}')
-
-    return None
+    G = nx.Graph()
+    # node追加
+    for u, v, d in weighted_edges:
+        G.add_edge(u, v, weight=d)
+    # 座標決定
+    pos=nx.spring_layout(
+        G, 
+        #k=0.45, 
+        #iterations=100,
+        )
+    # ノード描画
+    nx.draw_networkx_nodes(
+        G, pos, node_size=800, node_color="#E0F7FA", 
+        alpha=0.9, ax=ax, node_shape='o')
+    # テキスト描画
+    nx.draw_networkx_labels(
+        G, pos, font_size=9, font_family='IPAexGothic',
+        font_color='#303F9F', ax=ax)
+    # edge描画
+    for u, v, d in weighted_edges:
+        print(u,v,d)
+        nx.draw_networkx_edges(
+            G, pos, edgelist=[(u, v)],
+            width=2, edge_color=[d], 
+            ax=ax, 
+            edge_cmap=plt.cm.Blues, edge_vmin=0, edge_vmax=edge_vmax)
+    return fig
 
 
 if __name__=='__main__':
